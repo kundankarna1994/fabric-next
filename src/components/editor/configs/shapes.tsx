@@ -1,9 +1,12 @@
 import Circle from "../shapes/circle/circle";
-import { Circle as FCircle, Rect as FRect } from "fabric";
+import { Circle as FCircle, Rect as FRect, FabricImage, filters } from "fabric";
 import CircleSetting from "../shapes/circle/circle-setting";
 import Rectangle from "../shapes/rectangle/rectangle";
 import RectangleSetting from "../shapes/rectangle/rectangle-setting";
 import { v4 as uuid } from "uuid";
+import ImageSetting from "../shapes/image/image-setting";
+import Image from "../shapes/image/image";
+import { SwapColor } from "@/Filters/SwapColor";
 
 const shapes = [
     {
@@ -34,6 +37,35 @@ const shapes = [
         }),
     },
 ];
+
+FabricImage.fromURL(
+    "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTtnvAOajH9gS4C30cRF7rD_voaTAKly2Ntaw&s",
+    {
+        crossOrigin: "anonymous",
+    }
+).then((img) => {
+    const swapColorFilter = new SwapColor();
+    swapColorFilter.colorSource = "#000";
+    swapColorFilter.colorDestination = "#003fa3";
+    img.filters = [swapColorFilter];
+    img.applyFilters();
+    img.set({
+        dirty: true,
+        scaleX: 0.5,
+        scaleY: 0.5,
+        left: 100,
+        top: 100,
+        angle: -15,
+    });
+
+    shapes.push({
+        name: "Image",
+        elem: Image,
+        setting: ImageSetting,
+        key: "image",
+        shape: img,
+    });
+});
 
 export const settings = shapes.reduce((acc, cur) => {
     acc[cur.key] = cur.setting;
