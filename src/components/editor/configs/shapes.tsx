@@ -7,6 +7,7 @@ import { v4 as uuid } from "uuid";
 import ImageSetting from "../shapes/image/image-setting";
 import Image from "../shapes/image/image";
 import { SwapColor } from "@/Filters/SwapColor";
+import { ThresholdBlack } from "@/Filters/Threshold";
 
 const shapes = [
     {
@@ -44,10 +45,9 @@ FabricImage.fromURL(
         crossOrigin: "anonymous",
     }
 ).then((img) => {
-    const swapColorFilter = new SwapColor();
-    swapColorFilter.colorSource = "#000";
-    swapColorFilter.colorDestination = "#003fa3";
-    img.filters = [swapColorFilter];
+    const threshold = new ThresholdBlack();
+    threshold.threshold = 1;
+    img.filters = [new filters.BlackWhite(), threshold];
     img.applyFilters();
     img.set({
         dirty: true,

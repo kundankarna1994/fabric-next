@@ -1,52 +1,70 @@
 import {
-    classRegistry,
     filters,
-    T2DPipelineState,
+    type T2DPipelineState,
     TWebGLAttributeLocationMap,
 } from "fabric";
 
-type ThresholdOwnProps = {
-    threshold: number;
-};
+/**
+ * Fragment source for the ThresholdBlack filter
+ */
+const fragmentSource = `
+ precision highp float;
+ uniform sampler2D uTexture;
+ uniform float uThreshold;
+ varying vec2 vTexCoord;
+ void main() {
+   vec4 color = texture2D(uTexture, vTexCoord);
+   float brightness = (color.r + color.g + color.b) / 3.0;
+   gl_FragColor = brightness < uThreshold ? vec4(0.0, 0.0, 0.0, color.a) : color;
+ }`;
 
-export const grayscaleDefaultValues: ThresholdOwnProps = {
-    threshold: 100,
-};
-
-export class Threshold extends filters.BaseFilter<
-    "Threshold",
-    ThresholdOwnProps
+/**
+ * ThresholdBlack filter class
+ */
+export class ThresholdBlack extends filters.BaseFilter<
+    "ThresholdBlack",
+    { threshold: number }
 > {
-    static defaults = grayscaleDefaultValues;
+    static type = "ThresholdBlack";
 
-    static uniformLocations = ["uMode"];
+    static defaults = {
+        threshold: 0.5, // Default threshold (0 to 1)
+    };
 
+    declare threshold: number;
+
+    static uniformLocations = ["uThreshold"];
+
+    protected getFragmentSource(): string {
+        return fragmentSource;
+    }
+
+    /**
+     * Apply the threshold operation to a Uint8ClampedArray representing the pixels of an image.
+     */
     applyTo2d({ imageData: { data } }: T2DPipelineState) {
-        for (let i = 0, value: number; i < data.length; i += 4) {
-            const r = data[i];
-            const g = data[i + 1];
-            const b = data[i + 2];
+        const threshold = this.threshold * 255;
+        for (let i = 0; i < data.length; i += 4) {
+            const brightness = (data[i] + data[i + 1] + data[i + 2]) / 3;
+            if (brightness < threshold) {
+                data[i] = 0;
+                data[i + 1] = 0;
+                data[i + 2] = 0;
+            }
         }
     }
 
-    getCacheKey() {
-        return `_${this.type}`;
-    }
-
-    getFragmentSource() {
-        return ``;
-    }
+    /**
+     * Send data from this filter to its shader program's uniforms.
+     */
     sendUniformData(
         gl: WebGLRenderingContext,
         uniformLocations: TWebGLAttributeLocationMap
     ) {
-        const mode = 1;
-        gl.uniform1i(uniformLocations.uMode, mode);
+        gl.uniform1f(uniformLocations.uThreshold, this.threshold);
     }
 
-    isNeutralState() {
-        return false;
+    isNeutralState(): boolean {
+        return this.threshold === 0;
     }
 }
-
-classRegistry.setClass(Threshold);
